@@ -1,0 +1,159 @@
+basePath: /
+consumes:
+- application/json
+definitions:
+  Product:
+    description: Product defines the structure for an API product
+    properties:
+      description:
+        description: The description of the product
+        maxLength: 10000
+        type: string
+        x-go-name: Description
+      id:
+        description: The ID for the product
+        format: int64
+        minimum: 1
+        type: integer
+        x-go-name: ID
+      name:
+        description: The name of the product
+        maxLength: 255
+        type: string
+        x-go-name: Name
+      price:
+        description: The price of the product
+        format: float
+        minimum: 0.01
+        type: number
+        x-go-name: Price
+      sku:
+        description: The SKU for the product
+        pattern: '[a-z]+-[a-z]+-[a-z]+'
+        type: string
+        x-go-name: SKU
+    required:
+    - name
+    - price
+    - sku
+    type: object
+    x-go-package: github.com/jshiwam/building-microservices-in-go/product-api/data
+info:
+  description: |-
+    the purpose of this API is to introduce the endpoints with the help of
+    which the user is able to fetch, add, update, and delete the products
+  title: Products API
+  version: 0.0.1
+paths:
+  /products:
+    get:
+      description: Returns a list of products
+      operationId: ListProducts
+      responses:
+        "200":
+          $ref: '#/responses/productsResponse'
+        "500":
+          $ref: '#/responses/internalServerErrorResponse'
+      tags:
+      - products
+    post:
+      description: Adds the product into the database
+      operationId: AddProduct
+      responses:
+        "200":
+          $ref: '#/responses/productResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+      tags:
+      - products
+  /products/{id}:
+    delete:
+      description: Deletes the product from the database if the given product ID exists
+      operationId: DeleteProduct
+      parameters:
+      - description: The unique id of the product
+        format: int64
+        in: path
+        minimum: 1
+        name: ID
+        required: true
+        type: integer
+      responses:
+        "201":
+          $ref: '#/responses/noContent'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "500":
+          $ref: '#/responses/internalServerErrorResponse'
+      tags:
+      - products
+    get:
+      description: Fetches the product from the database if the given product ID exists
+      operationId: GetProductById
+      parameters:
+      - description: The unique id of the product
+        format: int64
+        in: path
+        minimum: 1
+        name: ID
+        required: true
+        type: integer
+      responses:
+        "200":
+          $ref: '#/responses/productResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+      tags:
+      - products
+    put:
+      description: Updates the product in the database if the given product ID exists
+      operationId: UpdateProduct
+      parameters:
+      - description: The unique id of the product
+        format: int64
+        in: path
+        minimum: 1
+        name: ID
+        required: true
+        type: integer
+      responses:
+        "201":
+          $ref: '#/responses/noContent'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+      tags:
+      - products
+produces:
+- application/json
+responses:
+  errorResponse:
+    description: A ResponseError is an error that is used when no response is received
+      for the given API endpoint.
+  errorValidation:
+    description: A ValidationError is an error that is used when the required input
+      fails validation.
+  internalServerErrorResponse:
+    description: A InternalServerError is an error that is used when the some internal
+      computation fails
+  noContent:
+    description: No content is returned by this API endpoint
+  productResponse:
+    description: Returns the product with request id if the product exists in database
+      else returns error
+    schema:
+      $ref: '#/definitions/Product'
+  productsResponse:
+    description: Returns a list of products from the database
+    schema:
+      items:
+        $ref: '#/definitions/Product'
+      type: array
+schemes:
+- http
+swagger: "2.0"
