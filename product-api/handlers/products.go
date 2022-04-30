@@ -1,21 +1,22 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/hashicorp/go-hclog"
 	"github.com/jshiwam/building-microservices-in-go/product-api/data"
 )
 
 type Products struct {
-	_log *log.Logger
-	v    *data.Validation
+	log hclog.Logger
+	v   *data.Validation
+	pdb *data.ProductsDB
 }
 
-func NewProducts(l *log.Logger, v *data.Validation) *Products {
-	return &Products{l, v}
+func NewProducts(l hclog.Logger, v *data.Validation, pdb *data.ProductsDB) *Products {
+	return &Products{l, v, pdb}
 }
 
 type KeyProduct struct{}

@@ -44,6 +44,16 @@ type productIdRequiredWrapper struct {
 	ID int `json="id"`
 }
 
+// swagger:parameters ListProducts GetProductById
+type productQueryParamsWrapper struct {
+	// The price of the product is converted to the mentioned currency when returned
+	// If currency is not passed, then the default currency is GBP.
+	// in: query
+	// pattern: [A-Z]{3}
+	// required: false
+	Currency string
+}
+
 // No content is returned by this API endpoint
 // swagger:response noContent
 type noContentResponseWrapper struct {

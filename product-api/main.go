@@ -2,23 +2,40 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	protos "github.com/jshiwam/building-microservices-in-go/currency/protos/currency"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
+	"github.com/hashicorp/go-hclog"
 	"github.com/jshiwam/building-microservices-in-go/product-api/data"
 	"github.com/jshiwam/building-microservices-in-go/product-api/handlers"
+	"google.golang.org/grpc"
 )
 
 func main() {
 	// var buf bytes.Buffer
-	l := log.New(os.Stdout, "product-api ", log.Ldate|log.Ltime|log.Lshortfile)
+	l := hclog.New(&hclog.LoggerOptions{
+		Name:  "product-api ",
+		Level: hclog.LevelFromString("DEBUG"),
+	})
 	v := data.NewValidation()
+
+	conn, err := grpc.Dial("localhost:9092", grpc.WithInsecure())
+	if err != nil {
+		l.Error("Couldn't connect to currency server", "error", err)
+		return
+	}
+	defer conn.Close()
+	cc := protos.NewCurrencyClient(conn)
+
+	pdb := data.NewProductsDB(l, cc)
+
 	sm := mux.NewRouter()
 
 	// l.Println(time.Now(), time.Now().Add(10*time.Second))
@@ -28,9 +45,11 @@ func main() {
 	bye := handlers.NewBye(l)
 	sm.Handle("/bye", bye)
 
-	product := handlers.NewProducts(l, v)
+	product := handlers.NewProducts(l, v, pdb)
 	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/products", product.ListProducts).Queries("currency", "{[A-Z]{3}}")
 	getRouter.HandleFunc("/products", product.ListProducts)
+	getRouter.HandleFunc("/products/{id:[0-9]+}", product.GetProductById).Queries("currency", "{[A-Z]{3}}")
 	getRouter.HandleFunc("/products/{id:[0-9]+}", product.GetProductById)
 
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
@@ -58,11 +77,11 @@ func main() {
 		WriteTimeout: 1 * time.Second,
 	}
 	go func() {
-		l.Println("calling ListenAndServe")
+		l.Info("calling ListenAndServe")
 		serveErr := _server.ListenAndServe()
-		l.Println("ListenAndServe called")
+		l.Info("ListenAndServe called")
 		if serveErr != nil {
-			l.Fatal("ListenAndServe returns err ", serveErr)
+			l.Error("ListenAndServe returns err ", "error", serveErr)
 		}
 	}()
 
@@ -71,11 +90,11 @@ func main() {
 	// signal.Notify(sigChan, syscall.SIGTERM)
 
 	sig := <-sigChan
-	l.Println("Terminate signal received, graceful shutdown", sig)
+	l.Info("Terminate signal received, graceful shutdown", "signal", sig)
 	// _context, _ := context.WithDeadline(context.Background(), time.Now().Add(30*time.Second))
 	_context, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	shutdownErr := _server.Shutdown(_context)
 	if shutdownErr != nil {
-		l.Fatal("Server Shutdown err ", shutdownErr)
+		l.Error("Server Shutdown err ", "error", shutdownErr)
 	}
 }

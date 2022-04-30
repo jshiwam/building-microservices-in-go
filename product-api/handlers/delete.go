@@ -18,10 +18,10 @@ import (
 //  500: internalServerErrorResponse
 
 func (p *Products) DeleteProduct(rw http.ResponseWriter, req *http.Request) {
-	p._log.Println("DeleteProduct called")
+	p.log.Info("DeleteProduct called")
 	vars := mux.Vars(req)
 	idInt, _ := strconv.Atoi(vars["id"])
-	err := data.RemoveProduct(idInt)
+	err := p.pdb.RemoveProduct(idInt)
 
 	if err == data.ErrProductNotFound {
 		http.Error(rw, "Product not found", http.StatusNotFound)

@@ -3,19 +3,20 @@ package handlers
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 type Hello struct {
-	_log *log.Logger
+	log hclog.Logger
 }
 
-func NewHello(l *log.Logger) *Hello {
+func NewHello(l hclog.Logger) *Hello {
 	return &Hello{l}
 }
 func (h *Hello) ServeHTTP(rwriter http.ResponseWriter, request *http.Request) {
-	h._log.Println("Hello World")
+	h.log.Info("Hello World")
 
 	d, err := ioutil.ReadAll(request.Body)
 	if err != nil {

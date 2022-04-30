@@ -16,8 +16,8 @@ import (
 //  422: errorValidation
 
 func (p *Products) AddProduct(rw http.ResponseWriter, req *http.Request) {
-	p._log.Println("AddProducts called")
+	p.log.Info("AddProducts called")
 	// Read data from request and convert it into a required format
 	product := req.Context().Value(KeyProduct{}).(*data.Product)
-	data.AppendProduct(product)
+	p.pdb.AppendProduct(product)
 }

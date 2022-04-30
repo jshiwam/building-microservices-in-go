@@ -1,7 +1,11 @@
 package data
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/hashicorp/go-hclog"
+	protos "github.com/jshiwam/building-microservices-in-go/currency/protos/currency"
 )
 
 // Product defines the structure for an API product
@@ -29,7 +33,7 @@ type Product struct {
 	//
 	// required: true
 	// min: 0.01
-	Price float32 `json:"price" validate:"required,gt=0"`
+	Price float64 `json:"price" validate:"required,gt=0"`
 
 	// The SKU for the product
 	//
@@ -39,9 +43,18 @@ type Product struct {
 }
 type Products []*Product
 
+type ProductsDB struct {
+	log hclog.Logger
+	cc  protos.CurrencyClient
+}
+
+func NewProductsDB(log hclog.Logger, cc protos.CurrencyClient) *ProductsDB {
+	return &ProductsDB{log: log, cc: cc}
+}
+
 var ErrProductNotFound = fmt.Errorf("Product not found")
 
-func UpdateProduct(product *Product, id int) error {
+func (p *ProductsDB) UpdateProduct(product *Product, id int) error {
 	index, err := GetIdIndex(id)
 	if err != nil {
 		return ErrProductNotFound
@@ -50,20 +63,60 @@ func UpdateProduct(product *Product, id int) error {
 	productList[index] = product
 	return nil
 }
-func GetProducts() Products {
-	return productList
+
+func (p *ProductsDB) GetProducts(currency string) (Products, error) {
+	if currency == "" {
+		return productList, nil
+	}
+
+	rate, err := p.getRate(currency)
+
+	if err != nil {
+		return nil, err
+	}
+
+	np := Products{}
+
+	for _, prod := range productList {
+		copy_prod := *prod
+		copy_prod.Price = rate * copy_prod.Price
+		np = append(np, &copy_prod)
+	}
+
+	return np, nil
 }
 
-func GetProduct(id int) (*Product, error) {
+func (p *ProductsDB) getRate(dest string) (float64, error) {
+
+	rateRequest := &protos.RateRequest{
+		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
+		Destination: protos.Currencies(protos.Currencies_value[dest]),
+	}
+	resp, err := p.cc.GetRate(context.Background(), rateRequest)
+	if err != nil {
+		p.log.Error("Unable to get rate", "currency", dest, "error", err)
+		return -1, err
+	}
+	p.log.Info(fmt.Sprintf("Currency Response %#v", resp.Rate))
+	return resp.Rate, err
+}
+func (p *ProductsDB) GetProduct(id int, currency string) (*Product, error) {
 	index, err := GetIdIndex(id)
 
 	if err != nil {
 		return nil, err
 	}
-	return productList[index], nil
+	np := *productList[index]
+	rate, err := p.getRate(currency)
+
+	if err != nil {
+		return nil, err
+	}
+	np.Price = rate * np.Price
+	return &np, nil
 }
 
-func RemoveProduct(id int) error {
+func (p *ProductsDB) RemoveProduct(id int) error {
 	index, err := GetIdIndex(id)
 
 	if err != nil {
@@ -72,7 +125,7 @@ func RemoveProduct(id int) error {
 	productList = append(productList[:index], productList[index+1:]...)
 	return nil
 }
-func AppendProduct(product *Product) {
+func (p *ProductsDB) AppendProduct(product *Product) {
 	product.ID = generateID()
 	productList = append(productList, product)
 }

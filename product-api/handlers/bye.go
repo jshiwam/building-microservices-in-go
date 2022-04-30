@@ -3,20 +3,21 @@ package handlers
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 type Bye struct {
-	_log *log.Logger
+	log hclog.Logger
 }
 
-func NewBye(l *log.Logger) *Bye {
+func NewBye(l hclog.Logger) *Bye {
 	return &Bye{l}
 }
 
 func (b *Bye) ServeHTTP(rwriter http.ResponseWriter, request *http.Request) {
-	b._log.Println("Bye World")
+	b.log.Info("Bye World")
 	d, err := ioutil.ReadAll(request.Body)
 
 	if err != nil {

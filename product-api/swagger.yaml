@@ -2,6 +2,14 @@ basePath: /
 consumes:
 - application/json
 definitions:
+  GenericError:
+    description: GenericError is a generic error message returned by a server
+    properties:
+      message:
+        type: string
+        x-go-name: Message
+    type: object
+    x-go-package: github.com/jshiwam/building-microservices-in-go/product-api/handlers
   Product:
     description: Product defines the structure for an API product
     properties:
@@ -23,7 +31,7 @@ definitions:
         x-go-name: Name
       price:
         description: The price of the product
-        format: float
+        format: double
         minimum: 0.01
         type: number
         x-go-name: Price
@@ -38,9 +46,19 @@ definitions:
     - sku
     type: object
     x-go-package: github.com/jshiwam/building-microservices-in-go/product-api/data
+  ValidationError:
+    description: ValidationError is a collection of validation error messages
+    properties:
+      messages:
+        items:
+          type: string
+        type: array
+        x-go-name: Messages
+    type: object
+    x-go-package: github.com/jshiwam/building-microservices-in-go/product-api/handlers
 info:
   description: |-
-    the purpose of this API is to introduce the endpoints with the help of
+    The purpose of this API is to introduce the endpoints with the help of
     which the user is able to fetch, add, update, and delete the products
   title: Products API
   version: 0.0.1
@@ -49,6 +67,14 @@ paths:
     get:
       description: Returns a list of products
       operationId: ListProducts
+      parameters:
+      - description: |-
+          The price of the product is converted to the mentioned currency when returned
+          If currency is not passed, then the default currency is GBP
+        in: query
+        name: Currency
+        pattern: '[A-Z]{3}'
+        type: string
       responses:
         "200":
           $ref: '#/responses/productsResponse'
@@ -100,6 +126,13 @@ paths:
         name: ID
         required: true
         type: integer
+      - description: |-
+          The price of the product is converted to the mentioned currency when returned
+          If currency is not passed, then the default currency is GBP
+        in: query
+        name: Currency
+        pattern: '[A-Z]{3}'
+        type: string
       responses:
         "200":
           $ref: '#/responses/productResponse'
@@ -135,9 +168,13 @@ responses:
   errorResponse:
     description: A ResponseError is an error that is used when no response is received
       for the given API endpoint.
+    schema:
+      $ref: '#/definitions/GenericError'
   errorValidation:
     description: A ValidationError is an error that is used when the required input
       fails validation.
+    schema:
+      $ref: '#/definitions/ValidationError'
   internalServerErrorResponse:
     description: A InternalServerError is an error that is used when the some internal
       computation fails

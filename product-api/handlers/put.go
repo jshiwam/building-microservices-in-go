@@ -18,12 +18,12 @@ import (
 //  422: errorValidation
 
 func (p *Products) UpdateProduct(rw http.ResponseWriter, req *http.Request) {
-	p._log.Println("UpdateProduct called")
+	p.log.Info("UpdateProduct called")
 	product := req.Context().Value(KeyProduct{}).(*data.Product)
 
 	vars := mux.Vars(req)
 	id, _ := strconv.Atoi(vars["id"])
-	err := data.UpdateProduct(product, id)
+	err := p.pdb.UpdateProduct(product, id)
 
 	if err == data.ErrProductNotFound {
 		http.Error(rw, "Update ID doesn't exist ", http.StatusNotFound)
